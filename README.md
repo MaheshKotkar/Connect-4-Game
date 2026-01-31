@@ -2,7 +2,6 @@
 
 A premium, fully responsive, and immersive Connect 4 experience built with **Next.js**, **Tailwind CSS**, and **TypeScript**. Challenge yourself against an advanced AI or master the game with built-in strategy tools.
 
-![Game Preview](file:///C:/Users/mahes/.gemini/antigravity/brain/6d1fc03a-0460-4193-93aa-5fa1989d0034/uploaded_media_1769858748267.png)
 
 ## ✨ Features
 
