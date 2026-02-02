@@ -17,7 +17,7 @@ export default function DifficultySlider({ difficulty, setDifficulty }: Difficul
   ];
 
   return (
-    <div className="relative bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-3xl p-8 md:p-10 border-2 border-white/30 shadow-2xl max-w-2xl mx-auto group hover:shadow-purple-500/50 transition-all duration-500">
+    <div className="relative bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-[2rem] md:rounded-3xl p-6 md:p-10 border-2 border-white/30 shadow-2xl max-w-2xl mx-auto group hover:shadow-purple-500/50 transition-all duration-500">
       {/* Animated corner accents */}
       <div className="absolute top-0 left-0 w-20 h-20 border-t-4 border-l-4 border-yellow-400 rounded-tl-3xl opacity-50"></div>
       <div className="absolute bottom-0 right-0 w-20 h-20 border-b-4 border-r-4 border-red-400 rounded-br-3xl opacity-50"></div>
@@ -72,19 +72,19 @@ export default function DifficultySlider({ difficulty, setDifficulty }: Difficul
       </div>
 
       {/* Difficulty Label Buttons */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-8">
         {difficulties.map((diff, index) => (
           <button
             key={diff}
             onClick={() => setDifficulty(index)}
-            className={`relative py-4 px-6 rounded-2xl font-bold text-lg md:text-xl transition-all duration-300 border-2 ${difficulty === index
+            className={`relative py-3 md:py-4 px-1 md:px-6 rounded-xl md:rounded-2xl font-black text-sm md:text-xl transition-all duration-300 border-2 flex items-center justify-center ${difficulty === index
               ? `${colors[index]} border-white bg-white/20 scale-105 shadow-xl`
               : 'text-white/60 border-white/20 bg-white/5 hover:bg-white/10 hover:scale-105'
               }`}
           >
             <span className="relative z-10">{diff}</span>
             {difficulty === index && (
-              <div className={`absolute inset-0 bg-gradient-to-r ${bgColors[index]} to-transparent opacity-20 rounded-2xl animate-pulse`}></div>
+              <div className={`absolute inset-0 bg-gradient-to-r ${bgColors[index]} to-transparent opacity-20 rounded-xl md:rounded-2xl animate-pulse`}></div>
             )}
           </button>
         ))}
