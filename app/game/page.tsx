@@ -55,7 +55,7 @@ const getScore = (window: number[], piece: number) => {
     else if (count === 3 && empty === 1) score += 100;
     else if (count === 2 && empty === 2) score += 10;
 
-    if (oppCount === 3 && empty === 1) score -= 80;
+    if (oppCount === 3 && empty === 1) score -= 100;
 
     return score;
 };
@@ -230,6 +230,7 @@ function GameContent() {
     const [hintColumn, setHintColumn] = useState<number | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [hasUndone, setHasUndone] = useState(false);
+    const [delayedWinner, setDelayedWinner] = useState<number | 'draw' | null>(null);
 
     const checkWin = useCallback((currentBoard: number[][]) => {
         // Horizontal
@@ -291,6 +292,9 @@ function GameContent() {
         if (winResult) {
             setWinner(winResult.winner as any);
             setWinningCells(winResult.cells as any);
+            setTimeout(() => {
+                setDelayedWinner(winResult.winner as any);
+            }, 2000);
         } else {
             setCurrentPlayer(AI);
             setIsProcessing(true);
@@ -300,7 +304,7 @@ function GameContent() {
     useEffect(() => {
         if (currentPlayer === AI && !winner && isProcessing) {
             const timer = setTimeout(() => {
-                const depth = difficultyIdx === 0 ? 1 : difficultyIdx === 1 ? 3 : 5;
+                const depth = difficultyIdx === 0 ? 3 : difficultyIdx === 1 ? 5 : 7;
                 const [bestCol] = minimax(board, depth, -Infinity, Infinity, true);
 
                 const nextBoard = dropPiece(board, bestCol!, AI);
@@ -310,6 +314,9 @@ function GameContent() {
                     if (winResult) {
                         setWinner(winResult.winner as any);
                         setWinningCells(winResult.cells as any);
+                        setTimeout(() => {
+                            setDelayedWinner(winResult.winner as any);
+                        }, 2000);
                     } else {
                         setCurrentPlayer(PLAYER);
                     }
@@ -327,6 +334,7 @@ function GameContent() {
         setHistory([]);
         setHasUndone(true);
         setWinner(null);
+        setDelayedWinner(null);
         setWinningCells([]);
         setCurrentPlayer(PLAYER);
         setHintColumn(null);
@@ -347,6 +355,7 @@ function GameContent() {
         setBoard(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
         setCurrentPlayer(PLAYER);
         setWinner(null);
+        setDelayedWinner(null);
         setWinningCells([]);
         setHistory([]);
         setHintsUsed(0);
@@ -428,9 +437,9 @@ function GameContent() {
             <Footer />
 
             {/* Game Over Modal Overlay */}
-            {winner && (
+            {delayedWinner && (
                 <GameOverModal
-                    winner={winner}
+                    winner={delayedWinner}
                     onRestart={resetGame}
                     onHome={() => router.push('/')}
                 />
