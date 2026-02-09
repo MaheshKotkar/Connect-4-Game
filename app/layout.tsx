@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import React from "react";
 import { MusicProvider } from "./src/context/MusicContext";
-import { ThemeProvider } from "./src/context/ThemeContext"; // Added ThemeProvider import
+import { ThemeProvider } from "./src/context/ThemeContext";
 import ScrollToTop from "./src/components/ScrollToTop";
 
 const geistSans = Geist({

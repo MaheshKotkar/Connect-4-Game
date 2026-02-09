@@ -6,6 +6,17 @@ import Navbar from '../src/components/Navbar';
 import Footer from '../src/components/Footer';
 import { Suspense } from 'react';
 import { useTheme } from '../src/context/ThemeContext';
+import dynamic from 'next/dynamic';
+
+// Add this right after your other imports
+const Connect4Board3D = dynamic(() => import('../src/components/Connect4Board3D'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[600px] flex items-center justify-center bg-gradient-to-b from-purple-900 to-indigo-900 rounded-3xl">
+      <div className="text-white text-2xl">Loading 3D Board...</div>
+    </div>
+  )
+});
 
 // Constants
 const ROWS = 6;
@@ -289,8 +300,12 @@ function GameContent() {
 
         const winResult = checkWin(nextBoard);
         if (winResult) {
-            setWinner(winResult.winner as any);
-            setWinningCells(winResult.cells as any);
+            setIsProcessing(true);
+            setTimeout(() => {
+                setWinner(winResult.winner as any);
+                setWinningCells(winResult.cells as any);
+                setIsProcessing(false);
+              }, 2000);
         } else {
             setCurrentPlayer(AI);
             setIsProcessing(true);
@@ -307,11 +322,18 @@ function GameContent() {
                 if (nextBoard) {
                     setBoard(nextBoard);
                     const winResult = checkWin(nextBoard);
+
                     if (winResult) {
-                        setWinner(winResult.winner as any);
-                        setWinningCells(winResult.cells as any);
+                        setIsProcessing(true); // freeze immediately
+
+                        setTimeout(() => {
+                            setWinner(winResult.winner as any);
+                            setWinningCells(winResult.cells as any);
+                            setIsProcessing(false);
+                        }, 2000);
                     } else {
                         setCurrentPlayer(PLAYER);
+                        setIsProcessing(false);
                     }
                 }
                 setIsProcessing(false);
@@ -389,28 +411,14 @@ function GameContent() {
                 </div>
 
                 {/* The Game Board */}
-                <div className={`relative group p-2 md:p-4 rounded-[1.5rem] md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-[6px] md:border-[12px] backdrop-blur-sm mx-2 transition-all duration-500 ${styles.board}`}>
-                    <div className={`grid grid-cols-7 gap-1 md:gap-4 p-1 md:p-4 rounded-[1rem] md:rounded-3xl border-2 md:border-4 shadow-inner transition-all duration-500 ${styles.boardInner}`}>
-                        {board.map((row, rIdx) => (
-                            row.map((cell, cIdx) => {
-                                const isWinningCell = winningCells.some(([wr, wc]) => wr === rIdx && wc === cIdx);
-                                const isHintCell = hintColumn === cIdx && cell === 0 && (rIdx === ROWS - 1 || board[rIdx + 1][cIdx] !== 0);
+                {/* 3D Connect 4 Board */}
+                        <Connect4Board3D
+                        board={board}
+                        onColumnClick={handleCellClick}
+                        currentPlayer={currentPlayer}
+                        isAIThinking={isProcessing || currentPlayer === AI}
+                        />
 
-                                return (
-                                    <div
-                                        key={`${rIdx}-${cIdx}`}
-                                        onClick={() => handleCellClick(cIdx)}
-                                        className={`relative w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full bg-blue-900/50 shadow-[inset_0_4px_8px_rgba(0,0,0,0.4)] flex items-center justify-center overflow-hidden cursor-pointer hover:bg-white/10 transition-all ${isHintCell ? 'ring-2 md:ring-4 ring-yellow-400/50 animate-pulse bg-yellow-400/20' : ''}`}
-                                    >
-                                        <div className={`w-[85%] h-[85%] rounded-full transition-all duration-500 shadow-md transform ${cell === PLAYER ? styles.player : cell === AI ? styles.ai : 'bg-white/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]'} ${isWinningCell ? 'scale-110 ring-2 md:ring-4 ring-white shadow-2xl z-10' : ''}`}>
-                                            {cell !== 0 && <div className="absolute top-[15%] left-[15%] w-[30%] h-[30%] bg-white/40 rounded-full filter blur-[1px]"></div>}
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        ))}
-                    </div>
-                </div>
 
                 {/* Action Controls */}
                 <div className="mt-8 md:mt-12 w-full max-w-2xl grid grid-cols-2 gap-4 md:gap-6 px-4">
