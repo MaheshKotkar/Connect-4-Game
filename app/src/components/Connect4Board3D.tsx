@@ -112,12 +112,16 @@ function DraggableBall({
 }) {
   const [currentCol, setCurrentCol] = useState(3);
   const meshRef = useRef<THREE.Mesh>(null);
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const canvas = gl.domElement;
+
+    const handlePointerMove = (e: PointerEvent) => {
       if (isDragging) {
-        const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
+        e.preventDefault(); // Prevent scrolling on mobile
+        
+        const rect = canvas.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
 
         const raycaster = new THREE.Raycaster();
@@ -135,33 +139,38 @@ function DraggableBall({
       }
     };
 
-    const handleMouseUp = () => {
-        if (isDragging) {
-          setIsDragging(false);
-          onRelease(currentCol);
-      
-          // Sound when ball is released
-          const releaseAudio = new Audio('/sounds/ball-release.mp3');
-          releaseAudio.volume = 0.3;
-          releaseAudio.play().catch(() => {});
-      
-          setTimeout(() => {
-            setCurrentCol(3);
-            onColumnChange(-1);
-          }, 100);
-        }
-      };
+    const handlePointerUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        onRelease(currentCol);
+
+
+        setTimeout(() => {
+          setCurrentCol(3);
+          onColumnChange(-1);
+        }, 100);
+      }
+    };
 
     if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      // Use pointer events for mobile compatibility
+      canvas.addEventListener('pointermove', handlePointerMove);
+      canvas.addEventListener('pointerup', handlePointerUp);
+      canvas.addEventListener('pointercancel', handlePointerUp);
+      
+      // Prevent touch scrolling when dragging
+      canvas.style.touchAction = 'none';
+    } else {
+      canvas.style.touchAction = 'auto';
     }
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('pointermove', handlePointerMove);
+      canvas.removeEventListener('pointerup', handlePointerUp);
+      canvas.removeEventListener('pointercancel', handlePointerUp);
+      canvas.style.touchAction = 'auto';
     };
-  }, [isDragging, currentCol, onRelease, setIsDragging, camera, onColumnChange]);
+  }, [isDragging, currentCol, onRelease, setIsDragging, camera, onColumnChange, gl]);
 
   const xPos = currentCol - 3;
 
@@ -169,7 +178,10 @@ function DraggableBall({
     <mesh
       ref={meshRef}
       position={[xPos, 4.5, 0.6]}
-      onPointerDown={() => setIsDragging(true)}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        setIsDragging(true);
+      }}
       castShadow
       receiveShadow
     >
@@ -187,7 +199,6 @@ function DraggableBall({
     </mesh>
   );
 }
-
 // Board with circular holes - balls sit IN FRONT of board
 function BoardFrame({ boardColor }: { boardColor: string }) {
   return (
@@ -387,10 +398,10 @@ function Scene({ board, onColumnClick, currentPlayer, isAIThinking }: Connect4Bo
 
 export default function Connect4Board3D(props: Connect4Board3DProps) {
   return (
-    <div className="w-full h-[600px] md:h-[700px] lg:h-[800px] rounded-3xl overflow-hidden shadow-2xl">
+    <div className="w-full h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] xl:h-[800px] rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl">
       <Canvas
         shadows
-        camera={{ position: [0, 0, 14], fov: 45 }}
+        camera={{ position: [0, 0, 12], fov: 50 }}
         gl={{ antialias: true }}
       >
         <Scene {...props} />
