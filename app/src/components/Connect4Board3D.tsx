@@ -124,17 +124,14 @@ function DraggableBall({
         const rect = canvas.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
 
-        const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(new THREE.Vector2(x, 0), camera);
 
-// Convert NDC → world space
-const vector = new THREE.Vector3(ndcX, 0, 0.5).unproject(camera);
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        const intersection = new THREE.Vector3();
+        raycaster.ray.intersectPlane(plane, intersection);
 
-// Project onto board space (z ≈ 0.6 where balls live)
-const worldX = vector.x;
-
-// Convert world X → column
-const col = Math.max(0, Math.min(6, Math.floor(worldX + 3.5)));
-
+        const col = Math.max(0, Math.min(6, Math.round(intersection.x + 3)));
         if (col !== currentCol) {
           setCurrentCol(col);
           onColumnChange(col);
@@ -401,7 +398,7 @@ function Scene({ board, onColumnClick, currentPlayer, isAIThinking }: Connect4Bo
 
 export default function Connect4Board3D(props: Connect4Board3DProps) {
   return (
-    <div className="w-full h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] xl:h-[800px] rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl"  style={{ touchAction: 'none' }}>
+    <div className="w-full h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] xl:h-[800px] rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl">
       <Canvas
         shadows
         camera={{ position: [0, 0, 12], fov: 50 }}
