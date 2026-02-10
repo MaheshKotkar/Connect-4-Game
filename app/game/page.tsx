@@ -330,6 +330,9 @@ function GameContent() {
                             setDelayedWinner(winResult.winner as any);
                         },2000);
                         setWinningCells(winResult.cells as any);
+                        setTimeout(() => {
+                            setDelayedWinner(winResult.winner as any);
+                        }, 2000);
                     } else {
                         setCurrentPlayer(PLAYER);
                         setIsProcessing(false);
