@@ -302,7 +302,11 @@ function GameContent() {
         const winResult = checkWin(nextBoard);
         if (winResult) {
             setWinner(winResult.winner as any);
+            setTimeout(() => {
+                setDelayedWinner(winResult.winner as any);
+            },2000);
             setWinningCells(winResult.cells as any);
+            
         } else {
             setCurrentPlayer(AI);
             setIsProcessing(true);
@@ -322,6 +326,9 @@ function GameContent() {
 
                     if (winResult) {
                         setWinner(winResult.winner as any);
+                        setTimeout(() => {
+                            setDelayedWinner(winResult.winner as any);
+                        },2000);
                         setWinningCells(winResult.cells as any);
                     } else {
                         setCurrentPlayer(PLAYER);
@@ -404,14 +411,16 @@ function GameContent() {
                     </div>
                 </div>
 
-                {/* The Game Board */}
-                {/* 3D Connect 4 Board */}
-                        <Connect4Board3D
-                        board={board}
-                        onColumnClick={handleCellClick}
-                        currentPlayer={currentPlayer}
-                        isAIThinking={isProcessing || currentPlayer === AI}
-                        />
+
+                {/* {/* 3D Connect 4 Board - Responsive */}
+<div className="w-full max-w-[95vw] md:max-w-4xl lg:max-w-5xl mx-auto px-2 md:px-4">
+  <Connect4Board3D
+    board={board}
+    onColumnClick={handleCellClick}
+    currentPlayer={currentPlayer}
+    isAIThinking={isProcessing || currentPlayer === AI}
+  />
+</div>
 
 
                 {/* Action Controls */}
