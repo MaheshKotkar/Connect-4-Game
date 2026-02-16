@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment,RoundedBox } from '@react-three/drei';
+import { Environment, RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import { useTheme } from '../context/ThemeContext';
 
@@ -11,6 +11,7 @@ interface Connect4Board3DProps {
   onColumnClick: (col: number) => void;
   currentPlayer: number;
   isAIThinking: boolean;
+  hintColumn?: number | null;
 }
 
 // Ball - Always fully visible
@@ -35,14 +36,14 @@ function Ball({ position, color, delay = 0 }: { position: [number, number, numbe
         const newY = currentY - newVelocity;
 
         if (newY <= position[1]) {
-            setCurrentY(position[1]);
-            setIsDropping(false);
-            
-            // Sound when ball lands in slot
-            const dropAudio = new Audio('/sounds/ball-drop.wav');
-            dropAudio.volume = 0.5;
-            dropAudio.play().catch(() => {});
-          } else {
+          setCurrentY(position[1]);
+          setIsDropping(false);
+
+          // Sound when ball lands in slot
+          const dropAudio = new Audio('/sounds/ball-drop.wav');
+          dropAudio.volume = 0.5;
+          dropAudio.play().catch(() => { });
+        } else {
           setCurrentY(newY);
           setVelocity(newVelocity);
         }
@@ -96,6 +97,26 @@ function ColumnHighlight({ column, visible }: { column: number, visible: boolean
   );
 }
 
+// Hint highlight
+function HintHighlight({ column, visible }: { column: number, visible: boolean }) {
+  if (!visible) return null;
+
+  return (
+    <group>
+      <mesh position={[column - 3, 0, 0.6]}>
+        <cylinderGeometry args={[0.48, 0.48, 7, 32]} />
+        <meshStandardMaterial
+          color="#4ade80"
+          transparent
+          opacity={0.25}
+          emissive="#4ade80"
+          emissiveIntensity={0.8}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 // Draggable Ball - ALWAYS VISIBLE
 function DraggableBall({
   color,
@@ -119,13 +140,12 @@ function DraggableBall({
 
     const handlePointerMove = (e: PointerEvent) => {
       if (isDragging) {
-        e.preventDefault(); // Prevent scrolling on mobile
-        
         const rect = canvas.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
         const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(new THREE.Vector2(x, 0), camera);
+        raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
 
         const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
         const intersection = new THREE.Vector3();
@@ -157,18 +177,12 @@ function DraggableBall({
       canvas.addEventListener('pointermove', handlePointerMove);
       canvas.addEventListener('pointerup', handlePointerUp);
       canvas.addEventListener('pointercancel', handlePointerUp);
-      
-      // Prevent touch scrolling when dragging
-      canvas.style.touchAction = 'none';
-    } else {
-      canvas.style.touchAction = 'auto';
     }
 
     return () => {
       canvas.removeEventListener('pointermove', handlePointerMove);
       canvas.removeEventListener('pointerup', handlePointerUp);
       canvas.removeEventListener('pointercancel', handlePointerUp);
-      canvas.style.touchAction = 'auto';
     };
   }, [isDragging, currentCol, onRelease, setIsDragging, camera, onColumnChange, gl]);
 
@@ -180,7 +194,11 @@ function DraggableBall({
       position={[xPos, 4.5, 0.6]}
       onPointerDown={(e) => {
         e.stopPropagation();
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
         setIsDragging(true);
+      }}
+      onPointerUp={(e) => {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       }}
       castShadow
       receiveShadow
@@ -224,61 +242,61 @@ function BoardFrame({ boardColor }: { boardColor: string }) {
             <group key={`hole-${row}-${col}`}>
               {/* Deep circular hole */}
 
-<mesh
-  position={[xPos, yPos, 0.1]}
-  rotation={[Math.PI / 2, 0, 0]}
-  receiveShadow
->
-  <cylinderGeometry args={[0.42, 0.42, 1, 64]} />
-  <meshStandardMaterial
-    color="#000000"
-    transparent
-    opacity={0.3}
-    metalness={0.8}
-    roughness={0.2}
-  />
-</mesh>
+              <mesh
+                position={[xPos, yPos, 0.1]}
+                rotation={[Math.PI / 2, 0, 0]}
+                receiveShadow
+              >
+                <cylinderGeometry args={[0.42, 0.42, 1, 64]} />
+                <meshStandardMaterial
+                  color="#000000"
+                  transparent
+                  opacity={0.3}
+                  metalness={0.8}
+                  roughness={0.2}
+                />
+              </mesh>
 
             </group>
           );
         })
       )}
 
-  {/* Border frame - Top */}
-<RoundedBox args={[8, 0.5, 0.8]} radius={0.1} smoothness={4} position={[0, 3.75, 0]} castShadow>
-  <meshStandardMaterial
-    color="#1e3a8a"
-    metalness={0.4}
-    roughness={0.4}
-  />
-</RoundedBox>
+      {/* Border frame - Top */}
+      <RoundedBox args={[8, 0.5, 0.8]} radius={0.1} smoothness={4} position={[0, 3.75, 0]} castShadow>
+        <meshStandardMaterial
+          color="#1e3a8a"
+          metalness={0.4}
+          roughness={0.4}
+        />
+      </RoundedBox>
 
-{/* Border frame - Bottom */}
-<RoundedBox args={[8, 0.5, 0.8]} radius={0.1} smoothness={4} position={[0, -3.75, 0]} castShadow>
-  <meshStandardMaterial
-    color="#1e3a8a"
-    metalness={0.4}
-    roughness={0.4}
-  />
-</RoundedBox>
+      {/* Border frame - Bottom */}
+      <RoundedBox args={[8, 0.5, 0.8]} radius={0.1} smoothness={4} position={[0, -3.75, 0]} castShadow>
+        <meshStandardMaterial
+          color="#1e3a8a"
+          metalness={0.4}
+          roughness={0.4}
+        />
+      </RoundedBox>
 
-{/* Border frame - Left */}
-<RoundedBox args={[0.5, 8, 0.8]} radius={0.1} smoothness={4} position={[-4, 0, 0]} castShadow>
-  <meshStandardMaterial
-    color="#1e3a8a"
-    metalness={0.4}
-    roughness={0.4}
-  />
-</RoundedBox>
+      {/* Border frame - Left */}
+      <RoundedBox args={[0.5, 8, 0.8]} radius={0.1} smoothness={4} position={[-4, 0, 0]} castShadow>
+        <meshStandardMaterial
+          color="#1e3a8a"
+          metalness={0.4}
+          roughness={0.4}
+        />
+      </RoundedBox>
 
-{/* Border frame - Right */}
-<RoundedBox args={[0.5, 8, 0.8]} radius={0.1} smoothness={4} position={[4, 0, 0]} castShadow>
-  <meshStandardMaterial
-    color="#1e3a8a"
-    metalness={0.4}
-    roughness={0.4}
-  />
-</RoundedBox>
+      {/* Border frame - Right */}
+      <RoundedBox args={[0.5, 8, 0.8]} radius={0.1} smoothness={4} position={[4, 0, 0]} castShadow>
+        <meshStandardMaterial
+          color="#1e3a8a"
+          metalness={0.4}
+          roughness={0.4}
+        />
+      </RoundedBox>
 
 
       {/* Base platform */}
@@ -294,7 +312,7 @@ function BoardFrame({ boardColor }: { boardColor: string }) {
   );
 }
 
-function Scene({ board, onColumnClick, currentPlayer, isAIThinking }: Connect4Board3DProps) {
+function Scene({ board, onColumnClick, currentPlayer, isAIThinking, hintColumn }: Connect4Board3DProps) {
   const { styles } = useTheme();
   const [isDragging, setIsDragging] = useState(false);
   const [highlightColumn, setHighlightColumn] = useState(-1);
@@ -369,6 +387,7 @@ function Scene({ board, onColumnClick, currentPlayer, isAIThinking }: Connect4Bo
       <BoardFrame boardColor={boardColor} />
 
       <ColumnHighlight column={highlightColumn} visible={isDragging && highlightColumn >= 0} />
+      <HintHighlight column={hintColumn!} visible={!isDragging && hintColumn !== null && hintColumn !== undefined && hintColumn >= 0} />
 
       {/* All balls FULLY VISIBLE in front of board */}
       {balls.map((ball, index) => (
@@ -403,6 +422,7 @@ export default function Connect4Board3D(props: Connect4Board3DProps) {
         shadows
         camera={{ position: [0, 0, 12], fov: 50 }}
         gl={{ antialias: true }}
+        style={{ touchAction: 'none' }}
       >
         <Scene {...props} />
       </Canvas>

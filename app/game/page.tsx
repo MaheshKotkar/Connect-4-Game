@@ -10,12 +10,12 @@ import dynamic from 'next/dynamic';
 
 // Add this right after your other imports
 const Connect4Board3D = dynamic(() => import('../src/components/Connect4Board3D'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-[600px] flex items-center justify-center bg-gradient-to-b from-purple-900 to-indigo-900 rounded-3xl">
-      <div className="text-white text-2xl">Loading 3D Board...</div>
-    </div>
-  )
+    ssr: false,
+    loading: () => (
+        <div className="w-full h-[600px] flex items-center justify-center bg-gradient-to-b from-purple-900 to-indigo-900 rounded-3xl">
+            <div className="text-white text-2xl">Loading 3D Board...</div>
+        </div>
+    )
 });
 
 // Constants
@@ -62,11 +62,11 @@ const getScore = (window: number[], piece: number) => {
     const empty = window.filter(i => i === 0).length;
     const oppCount = window.filter(i => i === oppPiece).length;
 
-    if (count === 4) score += 10000;
-    else if (count === 3 && empty === 1) score += 100;
-    else if (count === 2 && empty === 2) score += 10;
+    if (count === 4) score += 100000;
+    else if (count === 3 && empty === 1) score += 500;
+    else if (count === 2 && empty === 2) score += 50;
 
-    if (oppCount === 3 && empty === 1) score -= 100;
+    if (oppCount === 3 && empty === 1) score -= 800; // Heuristic penalty for opponent threat
 
     return score;
 };
@@ -115,8 +115,8 @@ const minimax = (board: number[][], depth: number, alpha: number, beta: number, 
     const result = checkWinStatic(board);
 
     if (depth === 0 || result || validMoves.length === 0) {
-        if (result === AI) return [null, 1000000];
-        if (result === PLAYER) return [null, -1000000];
+        if (result === AI) return [null, 10000000];
+        if (result === PLAYER) return [null, -10000000];
         if (validMoves.length === 0) return [null, 0];
         return [null, scoreBoard(board, AI)];
     }
@@ -240,7 +240,6 @@ function GameContent() {
     const [hintsUsed, setHintsUsed] = useState(0);
     const [hintColumn, setHintColumn] = useState<number | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [hasUndone, setHasUndone] = useState(false);
     const [delayedWinner, setDelayedWinner] = useState<number | 'draw' | null>(null);
 
     const checkWin = useCallback((currentBoard: number[][]) => {
@@ -304,9 +303,9 @@ function GameContent() {
             setWinner(winResult.winner as any);
             setTimeout(() => {
                 setDelayedWinner(winResult.winner as any);
-            },2000);
+            }, 2000);
             setWinningCells(winResult.cells as any);
-            
+
         } else {
             setCurrentPlayer(AI);
             setIsProcessing(true);
@@ -328,7 +327,7 @@ function GameContent() {
                         setWinner(winResult.winner as any);
                         setTimeout(() => {
                             setDelayedWinner(winResult.winner as any);
-                        },2000);
+                        }, 2000);
                         setWinningCells(winResult.cells as any);
                         setTimeout(() => {
                             setDelayedWinner(winResult.winner as any);
@@ -345,11 +344,10 @@ function GameContent() {
     }, [currentPlayer, board, winner, isProcessing, difficultyIdx, checkWin]);
 
     const handleUndo = () => {
-        if (history.length === 0 || isProcessing || hasUndone || winner !== null) return;
+        if (history.length === 0 || isProcessing || winner !== null) return;
         const lastState = history[history.length - 1];
         setBoard(lastState);
-        setHistory([]);
-        setHasUndone(true);
+        setHistory(prev => prev.slice(0, -1));
         setWinner(null);
         setDelayedWinner(null);
         setWinningCells([]);
@@ -360,12 +358,33 @@ function GameContent() {
     const handleHint = () => {
         if (hintsUsed >= 2 || winner || isProcessing || currentPlayer !== PLAYER) return;
 
-        // Perfect move calculation (Minimax but for player)
-        // We negate the minimax for the player to find their optimal move at depth 5
-        const [bestCol] = minimax(board, 5, -Infinity, Infinity, false);
+        const validMoves = board[0].map((_, i) => i).filter(c => board[0][c] === 0);
+
+        // 1. Check for immediate winning move for player
+        for (const col of validMoves) {
+            const nextBoard = dropPiece(board, col, PLAYER);
+            if (nextBoard && checkWinStatic(nextBoard) === PLAYER) {
+                setHintColumn(col);
+                setHintsUsed(prev => prev + 1);
+                return;
+            }
+        }
+
+        // 2. Check for immediate winning move for AI (must block)
+        for (const col of validMoves) {
+            const nextBoard = dropPiece(board, col, AI);
+            if (nextBoard && checkWinStatic(nextBoard) === AI) {
+                setHintColumn(col);
+                setHintsUsed(prev => prev + 1);
+                return;
+            }
+        }
+
+        // 3. Otherwise use deep minimax
+        const [bestCol] = minimax(board, 7, -Infinity, Infinity, false);
 
         setHintColumn(bestCol);
-        setHintsUsed(hintsUsed + 1);
+        setHintsUsed(prev => prev + 1);
     };
 
     const resetGame = () => {
@@ -377,7 +396,6 @@ function GameContent() {
         setHistory([]);
         setHintsUsed(0);
         setHintColumn(null);
-        setHasUndone(false);
     };
 
     return (
@@ -416,14 +434,15 @@ function GameContent() {
 
 
                 {/* {/* 3D Connect 4 Board - Responsive */}
-<div className="w-full max-w-[95vw] md:max-w-4xl lg:max-w-5xl mx-auto px-2 md:px-4">
-  <Connect4Board3D
-    board={board}
-    onColumnClick={handleCellClick}
-    currentPlayer={currentPlayer}
-    isAIThinking={isProcessing || currentPlayer === AI}
-  />
-</div>
+                <div className="w-full max-w-[95vw] md:max-w-4xl lg:max-w-5xl mx-auto px-2 md:px-4">
+                    <Connect4Board3D
+                        board={board}
+                        onColumnClick={handleCellClick}
+                        currentPlayer={currentPlayer}
+                        isAIThinking={isProcessing || currentPlayer === AI}
+                        hintColumn={hintColumn}
+                    />
+                </div>
 
 
                 {/* Action Controls */}
@@ -433,7 +452,7 @@ function GameContent() {
                         <div className="flex gap-1 md:gap-2">{[1, 2].map(i => <div key={i} className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-colors duration-500 ${i > hintsUsed ? 'bg-yellow-400' : 'bg-white/10'}`}></div>)}</div>
                     </button>
 
-                    <button onClick={handleUndo} disabled={history.length === 0 || isProcessing || !!winner || hasUndone} className={`flex flex-col items-center justify-center p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all duration-300 shadow-xl ${history.length > 0 && !isProcessing && !winner && !hasUndone ? 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-blue-400/50 group active:scale-95' : 'bg-black/20 border-white/5 opacity-50 cursor-not-allowed'}`}>
+                    <button onClick={handleUndo} disabled={history.length === 0 || isProcessing || !!winner} className={`flex flex-col items-center justify-center p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all duration-300 shadow-xl ${history.length > 0 && !isProcessing && !winner ? 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-blue-400/50 group active:scale-95' : 'bg-black/20 border-white/5 opacity-50 cursor-not-allowed'}`}>
                         <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2 text-center flex-col sm:flex-row"><span className="text-xl md:text-3xl group-hover:-rotate-45 transition-transform">↩️</span><span className="text-sm md:text-xl font-bold text-white uppercase tracking-wider">Undo</span></div>
                         <p className="text-[10px] text-blue-200/50 font-bold tracking-widest uppercase hidden sm:block">History</p>
                     </button>
